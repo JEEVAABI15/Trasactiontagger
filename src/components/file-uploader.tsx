@@ -18,15 +18,22 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  const acceptedMimeTypes = {
+      'text/csv': ['.csv'],
+      'application/pdf': ['.pdf'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  };
+
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
-      if (selectedFile.type === 'text/csv' || selectedFile.type === 'application/pdf') {
+      if (Object.keys(acceptedMimeTypes).includes(selectedFile.type)) {
         setFile(selectedFile);
       } else {
         toast({
           title: 'Invalid File Type',
-          description: 'Please upload a CSV or PDF file.',
+          description: 'Please upload a CSV, PDF, or Excel file.',
           variant: 'destructive',
         });
       }
@@ -36,10 +43,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
-    accept: {
-      'text/csv': ['.csv'],
-      'application/pdf': ['.pdf'],
-    },
+    accept: acceptedMimeTypes,
   });
   
   const handleProcessFile = async () => {
@@ -95,14 +99,13 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             setIsLoading(false);
         }
       });
-    } else if (file.type === 'application/pdf') {
-      toast({
-        title: 'PDF Processing not implemented',
-        description: 'Please upload a CSV file for now.',
+    } else if (file.type === 'application/pdf' || file.type.includes('excel') || file.type.includes('spreadsheetml')) {
+       toast({
+        title: 'File type not yet supported',
+        description: 'Please upload a CSV file for now. PDF and Excel processing is coming soon.',
         variant: 'destructive',
       });
       setIsLoading(false);
-      // PDF processing logic will go here
     }
   };
 
@@ -114,14 +117,14 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
     <Card>
       <CardHeader>
         <CardTitle className="font-headline text-2xl">Upload Statement</CardTitle>
-        <CardDescription>Upload your bank statement in CSV or PDF format.</CardDescription>
+        <CardDescription>Upload your bank statement in CSV, PDF, or Excel format.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {file ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
               <div className="flex items-center gap-3">
-                {file.type === 'text/csv' ? <FileSpreadsheet className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
+                {file.type === 'text/csv' || file.type.includes('excel') || file.type.includes('spreadsheetml') ? <FileSpreadsheet className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{file.name}</span>
                   <span className="text-xs text-muted-foreground">
@@ -153,7 +156,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
               <p className="font-semibold">
                 {isDragActive ? 'Drop the files here...' : 'Drag & drop or click to upload'}
               </p>
-              <p className="text-sm text-muted-foreground">CSV or PDF files supported</p>
+              <p className="text-sm text-muted-foreground">CSV, PDF, or Excel files supported</p>
             </div>
           </div>
         )}
