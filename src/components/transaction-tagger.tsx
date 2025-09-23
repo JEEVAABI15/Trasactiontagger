@@ -10,6 +10,7 @@ import { Sparkles, Wand2, Check } from 'lucide-react';
 import TransactionsTable from './transactions-table';
 import CategoryManager from './category-manager';
 import { useToast } from "@/hooks/use-toast";
+import FileUploader from './file-uploader';
 
 export default function TransactionTagger() {
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
@@ -38,6 +39,14 @@ export default function TransactionTagger() {
      toast({
       title: "All transactions approved!",
       description: "All pending transactions have been successfully approved.",
+    });
+  };
+  
+  const handleTransactionsLoaded = (newTransactions: Transaction[]) => {
+    setTransactions(newTransactions);
+    toast({
+      title: 'Transactions Loaded',
+      description: `${newTransactions.length} transactions have been loaded from the file.`,
     });
   };
 
@@ -93,7 +102,7 @@ export default function TransactionTagger() {
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Transactions</CardTitle>
             <CardDescription>
-              {hasUnprocessed ? 'Click "Categorize Transactions" to begin.' : 'Review, edit, and approve the categories for your transactions.'}
+              {transactions.length > 0 ? 'Review, edit, and approve the categories for your transactions.' : 'Upload a file to get started.'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -109,6 +118,7 @@ export default function TransactionTagger() {
       </div>
 
       <div className="space-y-8 lg:col-span-1">
+        <FileUploader onTransactionsLoaded={handleTransactionsLoaded} />
         <Card>
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Controls</CardTitle>
