@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { MOCK_TRANSACTIONS, INITIAL_CATEGORIES } from '@/lib/data';
+import { INITIAL_CATEGORIES } from '@/lib/data';
 import type { Transaction, Category } from '@/lib/types';
 import { getCategorySuggestion } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import FileUploader from './file-uploader';
 
 export default function TransactionTagger() {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
