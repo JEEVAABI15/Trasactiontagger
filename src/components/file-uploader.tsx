@@ -7,6 +7,7 @@ import { FileUp, FileText, FileSpreadsheet, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/lib/types';
+import * as XLSX from 'xlsx';
 
 interface FileUploaderProps {
   onTransactionsLoaded: (transactions: Transaction[]) => void;
@@ -18,9 +19,9 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const { toast } = useToast();
 
   const acceptedMimeTypes = {
-      'application/pdf': ['.pdf'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+    'application/pdf': ['.pdf'],
+    'application/vnd.ms-excel': ['.xls'],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
   };
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -30,7 +31,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
     } else {
       toast({
         title: 'Invalid File Type',
-        description: 'Please upload a PDF, or Excel file.',
+        description: 'Please upload a PDF or Excel file.',
         variant: 'destructive',
       });
     }
@@ -41,16 +42,94 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
     multiple: false,
     accept: acceptedMimeTypes,
   });
-  
+
   const handleProcessFile = async () => {
     if (!file) return;
 
     setIsLoading(true);
-    
-    if (file.type === 'application/pdf' || file.type.includes('excel') || file.type.includes('spreadsheetml')) {
-       toast({
+
+    if (file.type.includes('excel') || file.type.includes('spreadsheetml')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          // Assuming header is in the first row
+          const header = json[0] as string[];
+          const rows = json.slice(1);
+          
+          const dateIndex = header.findIndex(h => h.toLowerCase() === 'date');
+          const narrationIndex = header.findIndex(h => h.toLowerCase() === 'narration');
+          const withdrawalIndex = header.findIndex(h => h.toLowerCase() === 'withdrawal');
+          const depositIndex = header.findIndex(h => h.toLowerCase() === 'deposit');
+          const closingBalanceIndex = header.findIndex(h => h.toLowerCase() === 'closing balance');
+
+          if (dateIndex === -1 || narrationIndex === -1 || closingBalanceIndex === -1) {
+             toast({
+              title: 'Invalid Excel Format',
+              description: "Could not find required columns: 'Date', 'Narration', 'Closing Balance'.",
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          const transactions: Transaction[] = rows.map((row: any, index) => {
+            const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
+            const deposit = parseFloat(row[depositIndex]) || 0;
+            const amount = withdrawal > 0 ? withdrawal : deposit;
+            const type = withdrawal > 0 ? 'withdrawal' : 'deposit';
+
+            // Handle Excel date serial number
+            let date = row[dateIndex];
+            if (typeof date === 'number') {
+              date = new Date(Math.round((date - 25569) * 86400 * 1000)).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            }
+
+
+            return {
+              id: `${Date.now()}-${index}`,
+              date: date,
+              narration: row[narrationIndex],
+              amount: amount,
+              type: type,
+              closingBalance: parseFloat(row[closingBalanceIndex]),
+              category: '',
+              status: 'unprocessed',
+            };
+          }).filter(t => t.narration); // Filter out empty rows
+
+          onTransactionsLoaded(transactions);
+          setFile(null);
+
+        } catch (error) {
+          console.error("Error processing excel file:", error);
+          toast({
+            title: 'Error Processing File',
+            description: 'There was an issue parsing your Excel file.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'File Read Error',
+          description: 'Could not read the selected file.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+      };
+      reader.readAsBinaryString(file);
+    } else if (file.type === 'application/pdf') {
+      toast({
         title: 'File type not yet supported',
-        description: 'PDF and Excel processing is coming soon.',
+        description: 'PDF processing is coming soon.',
         variant: 'destructive',
       });
       setIsLoading(false);
@@ -59,7 +138,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
 
   const removeFile = () => {
     setFile(null);
-  }
+  };
 
   return (
     <Card>
@@ -72,7 +151,11 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border bg-card p-3">
               <div className="flex items-center gap-3">
-                {file.type.includes('excel') || file.type.includes('spreadsheetml') ? <FileSpreadsheet className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
+                {file.type.includes('excel') || file.type.includes('spreadsheetml') ? (
+                  <FileSpreadsheet className="h-6 w-6 text-primary" />
+                ) : (
+                  <FileText className="h-6 w-6 text-primary" />
+                )}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{file.name}</span>
                   <span className="text-xs text-muted-foreground">
