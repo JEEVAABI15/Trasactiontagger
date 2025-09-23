@@ -28,15 +28,13 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const onDrop = (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
-      if (Object.keys(acceptedMimeTypes).includes(selectedFile.type)) {
-        setFile(selectedFile);
-      } else {
-        toast({
-          title: 'Invalid File Type',
-          description: 'Please upload a CSV, PDF, or Excel file.',
-          variant: 'destructive',
-        });
-      }
+      setFile(selectedFile);
+    } else {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a CSV, PDF, or Excel file.',
+        variant: 'destructive',
+      });
     }
   };
 
