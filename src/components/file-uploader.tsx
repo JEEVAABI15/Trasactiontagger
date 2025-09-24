@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileUp, FileText, FileSpreadsheet, X, Loader2 } from 'lucide-react';
+import { FileUp, FileSpreadsheet, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/lib/types';
@@ -78,7 +78,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             return;
           }
           
-          const fileProcessTime = new Date().getTime();
+          const fileProcessTime = Date.now().toString();
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
             const deposit = parseFloat(row[depositIndex]) || 0;
@@ -88,13 +88,10 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             // Handle Excel date serial number
             let date = row[dateIndex];
             if (typeof date === 'number') {
-              const excelEpoch = new Date(1899, 11, 30);
-              const excelDate = new Date(excelEpoch.getTime() + date * 86400000);
-              const day = String(excelDate.getDate()).padStart(2, '0');
-              const month = String(excelDate.getMonth() + 1).padStart(2, '0');
-              const year = String(excelDate.getFullYear()).slice(-2);
-              date = `${day}/${month}/${year}`;
+                const excelDate = XLSX.SSF.parse_date_code(date);
+                date = `${String(excelDate.d).padStart(2, '0')}/${String(excelDate.m).padStart(2, '0')}/${String(excelDate.y).slice(-2)}`;
             }
+
 
             return {
               id: `${fileProcessTime}-${index}`,
