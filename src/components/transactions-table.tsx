@@ -69,7 +69,7 @@ export default function TransactionsTable({
           {transactions.map((t) => (
             <TableRow key={t.id} className={cn(t.status === 'approved' && 'bg-accent/10')}>
               <TableCell className="font-medium">{t.date}</TableCell>
-              <TableCell className="max-w-xs truncate">{t.narration}</TableCell>
+              <TableCell>{t.narration}</TableCell>
               <TableCell className={cn("text-right font-mono", t.type === 'withdrawal' ? 'text-destructive' : 'text-foreground')}>
                 {t.type === 'withdrawal' ? '-' : '+'}
                 {formatCurrency(t.amount)}
