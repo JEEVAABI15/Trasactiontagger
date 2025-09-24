@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileUp, FileSpreadsheet, X, Loader2, FileText } from 'lucide-react';
@@ -16,12 +16,7 @@ interface FileUploaderProps {
 export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const acceptedMimeTypes = {
     'application/vnd.ms-excel': ['.xls'],
@@ -83,7 +78,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             return;
           }
           
-          const fileProcessTime = isClient ? new Date().getTime().toString() : 'server-time';
+          const fileProcessTime = new Date().getTime().toString();
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = withdrawalIndex !== -1 ? parseFloat(row[withdrawalIndex]) || 0 : 0;
             const deposit = depositIndex !== -1 ? parseFloat(row[depositIndex]) || 0 : 0;
@@ -91,12 +86,8 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             const type = withdrawal > 0 ? 'withdrawal' : 'deposit';
 
             let date: any = row[dateIndex];
-             if (typeof date === 'number') {
-              // Handle Excel serial date number
-              const excelEpoch = new Date(1899, 11, 30);
-              const excelDate = new Date(excelEpoch.getTime() + date * 86400000);
-              date = `${String(excelDate.getDate()).padStart(2, '0')}/${String(excelDate.getMonth() + 1).padStart(2, '0')}/${String(excelDate.getFullYear()).slice(-2)}`;
-            } else if (date instanceof Date) {
+             if (date instanceof Date) {
+              // Format DD/MM/YY
               date = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
             } else {
               date = String(date);
@@ -152,8 +143,6 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
     setFile(null);
   };
   
-  if (!isClient) return null;
-
   return (
     <Card>
       <CardHeader>
