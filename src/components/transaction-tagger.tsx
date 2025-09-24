@@ -12,6 +12,8 @@ import CategoryManager from './category-manager';
 import { useToast } from "@/hooks/use-toast";
 import FileUploader from './file-uploader';
 
+const IGNORED_KEYWORDS = ['salary', 'interest', 'atm withdrawal'];
+
 export default function TransactionTagger() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
@@ -57,11 +59,20 @@ export default function TransactionTagger() {
 
   const runCategorization = () => {
     startTransition(async () => {
-      const unprocessedTransactions = transactions.filter(t => t.status === 'unprocessed');
-      if (unprocessedTransactions.length === 0) {
+      const transactionsToProcess = transactions.filter(t => {
+        if (t.status !== 'unprocessed') return false;
+        if (t.type === 'deposit') return false;
+        if (t.amount < 10) return false;
+        if (IGNORED_KEYWORDS.some(keyword => t.narration.toLowerCase().includes(keyword))) {
+          return false;
+        }
+        return true;
+      });
+
+      if (transactionsToProcess.length === 0) {
         toast({
-            title: "No transactions to process",
-            description: "All transactions have already been categorized.",
+            title: "No new transactions to process",
+            description: "All applicable transactions have already been categorized.",
             variant: "default",
         });
         return;
@@ -69,27 +80,35 @@ export default function TransactionTagger() {
 
       toast({
         title: "Categorizing Transactions",
-        description: "AI is suggesting categories for your transactions. Please wait...",
+        description: `AI is suggesting categories for ${transactionsToProcess.length} transactions. Please wait...`,
       });
       
       const categoryValues = categories.map(c => c.value);
       
-      const updatedTransactions = await Promise.all(
-        transactions.map(async (t) => {
-          if (t.status === 'unprocessed') {
-            const transactionDetails = `Date: ${t.date}, Narration: ${t.narration}, Amount: ${t.amount}, Type: ${t.type}`;
-            const suggestion = await getCategorySuggestion(transactionDetails, categoryValues);
-            return {
-              ...t,
-              suggestedCategory: suggestion,
-              category: suggestion,
-              status: 'pending' as const,
-            };
+      const promises = transactionsToProcess.map(async (t) => {
+          const transactionDetails = `Date: ${t.date}, Narration: ${t.narration}, Amount: ${t.amount}, Type: ${t.type}`;
+          const suggestion = await getCategorySuggestion(transactionDetails, categoryValues);
+          return {
+            ...t,
+            suggestedCategory: suggestion,
+            category: suggestion,
+            status: 'pending' as const,
+          };
+      });
+
+      const categorizedTransactions = await Promise.all(promises);
+
+      setTransactions(prev => {
+        const updated = [...prev];
+        categorizedTransactions.forEach(categorized => {
+          const index = updated.findIndex(t => t.id === categorized.id);
+          if (index !== -1) {
+            updated[index] = categorized;
           }
-          return t;
-        })
-      );
-      setTransactions(updatedTransactions);
+        });
+        return updated;
+      });
+
       toast({
         title: "Categorization Complete!",
         description: "Review the suggestions and approve them.",
