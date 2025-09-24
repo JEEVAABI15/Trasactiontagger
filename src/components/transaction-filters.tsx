@@ -15,6 +15,7 @@ export interface FilterState {
   minAmount: string;
   maxAmount: string;
   type: 'all' | 'withdrawal' | 'deposit';
+  status: 'all' | 'unprocessed' | 'pending' | 'approved';
 }
 
 interface TransactionFiltersProps {
@@ -29,7 +30,7 @@ export default function TransactionFilters({ filters, setFilters, disabled }: Tr
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-5">
       <div className="space-y-2">
         <Label htmlFor="search">Search Narration</Label>
         <Input
@@ -76,6 +77,24 @@ export default function TransactionFilters({ filters, setFilters, disabled }: Tr
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="withdrawal">Withdrawal</SelectItem>
             <SelectItem value="deposit">Deposit</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="status">Status</Label>
+        <Select
+          value={filters.status}
+          onValueChange={(value: FilterState['status']) => handleFilterChange('status', value)}
+          disabled={disabled}
+        >
+          <SelectTrigger id="status">
+            <SelectValue placeholder="Select status..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="unprocessed">Unprocessed</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
           </SelectContent>
         </Select>
       </div>

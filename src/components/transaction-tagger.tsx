@@ -25,6 +25,7 @@ export default function TransactionTagger() {
     minAmount: '',
     maxAmount: '',
     type: 'all',
+    status: 'all',
   });
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function TransactionTagger() {
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      const { query, minAmount, maxAmount, type } = filters;
+      const { query, minAmount, maxAmount, type, status } = filters;
       const min = parseFloat(minAmount);
       const max = parseFloat(maxAmount);
 
@@ -49,6 +50,9 @@ export default function TransactionTagger() {
         return false;
       }
       if (type !== 'all' && t.type !== type) {
+        return false;
+      }
+      if (status !== 'all' && t.status !== status) {
         return false;
       }
       return true;
