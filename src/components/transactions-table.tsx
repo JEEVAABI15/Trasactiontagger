@@ -47,7 +47,7 @@ export default function TransactionsTable({
   if (transactions.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-md border border-dashed">
-        <p className="text-muted-foreground">No transactions found.</p>
+        <p className="text-muted-foreground">No transactions match the current filters.</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export default function TransactionsTable({
           {transactions.map((t) => (
             <TableRow key={t.id} className={cn(t.status === 'approved' && 'bg-accent/10')}>
               <TableCell className="font-medium">{t.date}</TableCell>
-              <TableCell>{t.narration}</TableCell>
+              <TableCell className="max-w-[250px] break-words">{t.narration}</TableCell>
               <TableCell className={cn("text-right font-mono", t.type === 'withdrawal' ? 'text-destructive' : 'text-foreground')}>
                 {t.type === 'withdrawal' ? '-' : '+'}
                 {formatCurrency(t.amount)}

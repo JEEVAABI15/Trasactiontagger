@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
-import { INITIAL_CATEGORIES } from '@/lib/data';
+import { useState, useTransition, useEffect, useMemo } from 'react';
 import type { Transaction, Category } from '@/lib/types';
 import { getCategorySuggestion } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -11,19 +10,49 @@ import TransactionsTable from './transactions-table';
 import CategoryManager from './category-manager';
 import { useToast } from "@/hooks/use-toast";
 import FileUploader from './file-uploader';
-
-const IGNORED_KEYWORDS = ['salary', 'interest', 'atm withdrawal'];
+import TransactionFilters from './transaction-filters';
+import type { FilterState } from './transaction-filters';
 
 export default function TransactionTagger() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    query: '',
+    minAmount: '',
+    maxAmount: '',
+    type: 'all',
+  });
 
   useEffect(() => {
     setIsClient(true);
+    // Load initial categories from a client-safe source only once
+    import('@/lib/data').then(data => setCategories(data.INITIAL_CATEGORIES));
   }, []);
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      const { query, minAmount, maxAmount, type } = filters;
+      const min = parseFloat(minAmount);
+      const max = parseFloat(maxAmount);
+
+      if (query && !t.narration.toLowerCase().includes(query.toLowerCase())) {
+        return false;
+      }
+      if (!isNaN(min) && t.amount < min) {
+        return false;
+      }
+      if (!isNaN(max) && t.amount > max) {
+        return false;
+      }
+      if (type !== 'all' && t.type !== type) {
+        return false;
+      }
+      return true;
+    });
+  }, [transactions, filters]);
 
   const handleUpdateCategory = (transactionId: string, newCategory: string) => {
     setTransactions(prev =>
@@ -59,20 +88,12 @@ export default function TransactionTagger() {
 
   const runCategorization = () => {
     startTransition(async () => {
-      const transactionsToProcess = transactions.filter(t => {
-        if (t.status !== 'unprocessed') return false;
-        if (t.type === 'deposit') return false;
-        if (t.amount < 10) return false;
-        if (IGNORED_KEYWORDS.some(keyword => t.narration.toLowerCase().includes(keyword))) {
-          return false;
-        }
-        return true;
-      });
+      const transactionsToProcess = filteredTransactions.filter(t => t.status === 'unprocessed');
 
       if (transactionsToProcess.length === 0) {
         toast({
-            title: "No new transactions to process",
-            description: "All applicable transactions have already been categorized.",
+            title: "No transactions to process",
+            description: "All transactions in the current view have been processed.",
             variant: "default",
         });
         return;
@@ -89,21 +110,23 @@ export default function TransactionTagger() {
           const transactionDetails = `Date: ${t.date}, Narration: ${t.narration}, Amount: ${t.amount}, Type: ${t.type}`;
           const suggestion = await getCategorySuggestion(transactionDetails, categoryValues);
           return {
-            ...t,
+            id: t.id,
             suggestedCategory: suggestion,
-            category: suggestion,
-            status: 'pending' as const,
           };
       });
 
-      const categorizedTransactions = await Promise.all(promises);
+      const categorizedResults = await Promise.all(promises);
 
       setTransactions(prev => {
         const updated = [...prev];
-        categorizedTransactions.forEach(categorized => {
-          const index = updated.findIndex(t => t.id === categorized.id);
+        categorizedResults.forEach(result => {
+          const index = updated.findIndex(t => t.id === result.id);
           if (index !== -1) {
-            updated[index] = categorized;
+            updated[index] = {
+              ...updated[index],
+              category: result.suggestedCategory,
+              status: 'pending'
+            };
           }
         });
         return updated;
@@ -116,8 +139,8 @@ export default function TransactionTagger() {
     });
   };
 
-  const hasPending = transactions.some(t => t.status === 'pending');
-  const hasUnprocessed = transactions.some(t => t.status === 'unprocessed');
+  const hasPending = filteredTransactions.some(t => t.status === 'pending');
+  const hasUnprocessed = filteredTransactions.some(t => t.status === 'unprocessed');
 
   if (!isClient) {
     return null; // Don't render anything on the server
@@ -130,12 +153,13 @@ export default function TransactionTagger() {
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Transactions</CardTitle>
             <CardDescription>
-              {transactions.length > 0 ? 'Review, edit, and approve the categories for your transactions.' : 'Upload a file to get started.'}
+              {transactions.length > 0 ? 'Filter, review, and approve your transactions.' : 'Upload a file to get started.'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <TransactionFilters filters={filters} setFilters={setFilters} disabled={isPending} />
             <TransactionsTable
-              transactions={transactions}
+              transactions={filteredTransactions}
               categories={categories}
               onUpdateCategory={handleUpdateCategory}
               onApproveTransaction={handleApproveTransaction}
