@@ -78,6 +78,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             return;
           }
 
+          const fileProcessTime = new Date().getTime();
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
             const deposit = parseFloat(row[depositIndex]) || 0;
@@ -92,7 +93,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
 
 
             return {
-              id: `${Date.now()}-${index}`,
+              id: `${fileProcessTime}-${index}`,
               date: date,
               narration: row[narrationIndex],
               amount: amount,
