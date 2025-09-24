@@ -8,6 +8,7 @@ export type Transaction = {
   type: 'withdrawal' | 'deposit';
   closingBalance: number;
   category: string;
+  notes: string;
   suggestedCategory?: string;
   status: 'unprocessed' | 'pending' | 'approved';
 };

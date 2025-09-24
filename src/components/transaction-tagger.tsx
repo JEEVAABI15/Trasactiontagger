@@ -61,6 +61,14 @@ export default function TransactionTagger() {
       )
     );
   };
+  
+  const handleUpdateNotes = (transactionId: string, newNotes: string) => {
+    setTransactions(prev =>
+      prev.map(t =>
+        t.id === transactionId ? { ...t, notes: newNotes } : t
+      )
+    );
+  };
 
   const handleApproveTransaction = (transactionId: string) => {
     setTransactions(prev =>
@@ -162,6 +170,7 @@ export default function TransactionTagger() {
               transactions={filteredTransactions}
               categories={categories}
               onUpdateCategory={handleUpdateCategory}
+              onUpdateNotes={handleUpdateNotes}
               onApproveTransaction={handleApproveTransaction}
               disabled={isPending}
             />

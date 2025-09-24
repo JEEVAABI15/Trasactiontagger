@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileUp, FileSpreadsheet, X, Loader2, FileText } from 'lucide-react';
@@ -16,7 +16,12 @@ interface FileUploaderProps {
 export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const acceptedMimeTypes = {
     'application/vnd.ms-excel': ['.xls'],
@@ -31,7 +36,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
     } else {
       toast({
         title: 'Invalid File Type',
-        description: 'Please upload a PDF or Excel file.',
+        description: 'Please upload a PDF, XLS or XLSX file.',
         variant: 'destructive',
       });
     }
@@ -78,7 +83,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             return;
           }
           
-          const fileProcessTime = new Date().getTime().toString();
+          const fileProcessTime = isClient ? new Date().getTime().toString() : 'server-time';
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = withdrawalIndex !== -1 ? parseFloat(row[withdrawalIndex]) || 0 : 0;
             const deposit = depositIndex !== -1 ? parseFloat(row[depositIndex]) || 0 : 0;
@@ -86,7 +91,12 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             const type = withdrawal > 0 ? 'withdrawal' : 'deposit';
 
             let date: any = row[dateIndex];
-            if (date instanceof Date) {
+             if (typeof date === 'number') {
+              // Handle Excel serial date number
+              const excelEpoch = new Date(1899, 11, 30);
+              const excelDate = new Date(excelEpoch.getTime() + date * 86400000);
+              date = `${String(excelDate.getDate()).padStart(2, '0')}/${String(excelDate.getMonth() + 1).padStart(2, '0')}/${String(excelDate.getFullYear()).slice(-2)}`;
+            } else if (date instanceof Date) {
               date = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
             } else {
               date = String(date);
@@ -100,6 +110,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
               type: type,
               closingBalance: parseFloat(row[closingBalanceIndex]),
               category: '',
+              notes: '',
               status: 'unprocessed',
             };
           }).filter(t => t.narration && t.amount > 0); // Filter out empty or zero-amount rows
@@ -140,6 +151,8 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const removeFile = () => {
     setFile(null);
   };
+  
+  if (!isClient) return null;
 
   return (
     <Card>

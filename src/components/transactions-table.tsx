@@ -20,11 +20,13 @@ import { Badge } from '@/components/ui/badge';
 import type { Transaction, Category } from '@/lib/types';
 import { Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 interface TransactionsTableProps {
   transactions: Transaction[];
   categories: Category[];
   onUpdateCategory: (transactionId: string, newCategory: string) => void;
+  onUpdateNotes: (transactionId: string, newNotes: string) => void;
   onApproveTransaction: (transactionId: string) => void;
   disabled: boolean;
 }
@@ -33,6 +35,7 @@ export default function TransactionsTable({
   transactions,
   categories,
   onUpdateCategory,
+  onUpdateNotes,
   onApproveTransaction,
   disabled,
 }: TransactionsTableProps) {
@@ -61,6 +64,7 @@ export default function TransactionsTable({
             <TableHead>Narration</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Notes</TableHead>
             <TableHead className="text-center">Status</TableHead>
             <TableHead className="text-right">Action</TableHead>
           </TableRow>
@@ -101,6 +105,15 @@ export default function TransactionsTable({
                     </SelectContent>
                   </Select>
                 )}
+              </TableCell>
+               <TableCell>
+                <Textarea
+                  value={t.notes}
+                  onChange={(e) => onUpdateNotes(t.id, e.target.value)}
+                  placeholder="Add notes..."
+                  className="min-h-[40px] w-[200px]"
+                  disabled={disabled}
+                />
               </TableCell>
               <TableCell className="text-center">
                 {t.status === 'approved' && (
