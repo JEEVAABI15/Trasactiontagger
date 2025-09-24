@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import FileUploader from './file-uploader';
 import TransactionFilters from './transaction-filters';
 import type { FilterState } from './transaction-filters';
+import TransactionExporter from './transaction-exporter';
 
 export default function TransactionTagger() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -149,6 +150,7 @@ export default function TransactionTagger() {
 
   const hasPending = filteredTransactions.some(t => t.status === 'pending');
   const hasUnprocessed = filteredTransactions.some(t => t.status === 'unprocessed');
+  const hasTransactions = transactions.length > 0;
 
   if (!isClient) {
     return null; // Don't render anything on the server
@@ -165,7 +167,7 @@ export default function TransactionTagger() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <TransactionFilters filters={filters} setFilters={setFilters} disabled={isPending} />
+            <TransactionFilters filters={filters} setFilters={setFilters} disabled={isPending || !hasTransactions} />
             <TransactionsTable
               transactions={filteredTransactions}
               categories={categories}
@@ -180,28 +182,33 @@ export default function TransactionTagger() {
 
       <div className="space-y-8 lg:col-span-1">
         <FileUploader onTransactionsLoaded={handleTransactionsLoaded} />
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">Controls</CardTitle>
-            <CardDescription>Process your file and manage categories.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={runCategorization} disabled={isPending || !hasUnprocessed} className="w-full">
-              {isPending ? (
-                <Wand2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              { isPending ? 'Categorizing...' : 'Categorize Transactions' }
-            </Button>
-            { hasPending && (
-              <Button onClick={handleApproveAll} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                <Check className="mr-2 h-4 w-4" />
-                Approve All
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        {hasTransactions && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline text-2xl">Controls</CardTitle>
+                <CardDescription>Process your file and manage categories.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button onClick={runCategorization} disabled={isPending || !hasUnprocessed} className="w-full">
+                  {isPending ? (
+                    <Wand2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
+                  )}
+                  { isPending ? 'Categorizing...' : 'Categorize Transactions' }
+                </Button>
+                { hasPending && (
+                  <Button onClick={handleApproveAll} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Check className="mr-2 h-4 w-4" />
+                    Approve All
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+            <TransactionExporter transactions={transactions} categories={categories} />
+          </>
+        )}
         <CategoryManager categories={categories} setCategories={setCategories} />
       </div>
     </div>
