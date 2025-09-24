@@ -19,6 +19,6 @@ export async function getCategorySuggestion(
     console.error('Error suggesting category:', error);
   }
   
-  // Fallback to a random category if AI fails or suggests an invalid one.
-  return availableCategories[Math.floor(Math.random() * availableCategories.length)];
+  // Fallback to a default category if AI fails or suggests an invalid one.
+  return 'other';
 }

@@ -19,9 +19,9 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
   const { toast } = useToast();
 
   const acceptedMimeTypes = {
-    'application/pdf': ['.pdf'],
     'application/vnd.ms-excel': ['.xls'],
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+    'application/pdf': ['.pdf'],
   };
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -77,7 +77,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             setIsLoading(false);
             return;
           }
-
+          
           const fileProcessTime = new Date().getTime();
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
@@ -88,9 +88,13 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             // Handle Excel date serial number
             let date = row[dateIndex];
             if (typeof date === 'number') {
-              date = new Date(Math.round((date - 25569) * 86400 * 1000)).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' });
+              const excelEpoch = new Date(1899, 11, 30);
+              const excelDate = new Date(excelEpoch.getTime() + date * 86400000);
+              const day = String(excelDate.getDate()).padStart(2, '0');
+              const month = String(excelDate.getMonth() + 1).padStart(2, '0');
+              const year = String(excelDate.getFullYear()).slice(-2);
+              date = `${day}/${month}/${year}`;
             }
-
 
             return {
               id: `${fileProcessTime}-${index}`,
