@@ -53,25 +53,25 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
       reader.onload = (e) => {
         try {
           const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
+          const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           // Assuming header is in the first row
-          const header = json[0] as string[];
+          const header = json[0].map(h => String(h).toLowerCase());
           const rows = json.slice(1);
           
-          const dateIndex = header.findIndex(h => h.toLowerCase() === 'date');
-          const narrationIndex = header.findIndex(h => h.toLowerCase() === 'narration');
-          const withdrawalIndex = header.findIndex(h => h.toLowerCase() === 'withdrawal');
-          const depositIndex = header.findIndex(h => h.toLowerCase() === 'deposit');
-          const closingBalanceIndex = header.findIndex(h => h.toLowerCase() === 'closing balance');
+          const dateIndex = header.findIndex(h => h.includes('date'));
+          const narrationIndex = header.findIndex(h => h.includes('narration') || h.includes('description'));
+          const withdrawalIndex = header.findIndex(h => h.includes('withdrawal') || h.includes('debit'));
+          const depositIndex = header.findIndex(h => h.includes('deposit') || h.includes('credit'));
+          const closingBalanceIndex = header.findIndex(h => h.includes('closing balance') || h.includes('balance'));
 
           if (dateIndex === -1 || narrationIndex === -1 || closingBalanceIndex === -1) {
              toast({
               title: 'Invalid Excel Format',
-              description: "Could not find required columns: 'Date', 'Narration', 'Closing Balance'.",
+              description: "Could not find required columns like 'Date', 'Narration', 'Closing Balance'.",
               variant: 'destructive',
             });
             setIsLoading(false);
@@ -80,18 +80,17 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
           
           const fileProcessTime = new Date().getTime().toString();
           const transactions: Transaction[] = rows.map((row: any, index) => {
-            const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
-            const deposit = parseFloat(row[depositIndex]) || 0;
+            const withdrawal = withdrawalIndex !== -1 ? parseFloat(row[withdrawalIndex]) || 0 : 0;
+            const deposit = depositIndex !== -1 ? parseFloat(row[depositIndex]) || 0 : 0;
             const amount = withdrawal > 0 ? withdrawal : deposit;
             const type = withdrawal > 0 ? 'withdrawal' : 'deposit';
 
-            // Handle Excel date serial number
-            let date = row[dateIndex];
-            if (typeof date === 'number') {
-                const excelDate = XLSX.SSF.parse_date_code(date);
-                date = `${String(excelDate.d).padStart(2, '0')}/${String(excelDate.m).padStart(2, '0')}/${String(excelDate.y).slice(-2)}`;
+            let date: any = row[dateIndex];
+            if (date instanceof Date) {
+              date = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+            } else {
+              date = String(date);
             }
-
 
             return {
               id: `${fileProcessTime}-${index}`,
@@ -103,7 +102,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
               category: '',
               status: 'unprocessed',
             };
-          }).filter(t => t.narration); // Filter out empty rows
+          }).filter(t => t.narration && t.amount > 0); // Filter out empty or zero-amount rows
 
           onTransactionsLoaded(transactions);
           setFile(null);
