@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileUp, FileSpreadsheet, X, Loader2 } from 'lucide-react';
+import { FileUp, FileSpreadsheet, X, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/lib/types';
@@ -78,7 +78,7 @@ export default function FileUploader({ onTransactionsLoaded }: FileUploaderProps
             return;
           }
           
-          const fileProcessTime = Date.now().toString();
+          const fileProcessTime = new Date().getTime().toString();
           const transactions: Transaction[] = rows.map((row: any, index) => {
             const withdrawal = parseFloat(row[withdrawalIndex]) || 0;
             const deposit = parseFloat(row[depositIndex]) || 0;

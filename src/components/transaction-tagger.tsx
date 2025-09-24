@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { INITIAL_CATEGORIES } from '@/lib/data';
 import type { Transaction, Category } from '@/lib/types';
 import { getCategorySuggestion } from '@/lib/actions';
@@ -17,6 +17,11 @@ export default function TransactionTagger() {
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleUpdateCategory = (transactionId: string, newCategory: string) => {
     setTransactions(prev =>
@@ -94,6 +99,10 @@ export default function TransactionTagger() {
 
   const hasPending = transactions.some(t => t.status === 'pending');
   const hasUnprocessed = transactions.some(t => t.status === 'unprocessed');
+
+  if (!isClient) {
+    return null; // Don't render anything on the server
+  }
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
